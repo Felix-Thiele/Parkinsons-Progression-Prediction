@@ -39,7 +39,19 @@ class data:
 
     def x_data_3d(self):
 
-        df_uniprot, df_peptide = self.train_data()
+        df_all = self.train_proteins.merge(self.train_peptides[['visit_id', 'UniProt', 'Peptide', 'PeptideAbundance']],
+                                           on=['visit_id', 'UniProt'], how='left')
+
+        df_by_uniprot = df_all.groupby(['visit_id', 'UniProt'])['NPX'].mean().reset_index()
+        df_by_peptide = df_all.groupby(['visit_id', 'Peptide'])['PeptideAbundance'].mean().reset_index()
+
+        df_uniprot = df_by_uniprot.pivot(index='visit_id', columns='UniProt', values='NPX').rename_axis(
+            columns=None).reset_index()
+        df_peptide = df_by_peptide.pivot(index='visit_id', columns='Peptide', values='PeptideAbundance').rename_axis(
+            columns=None).reset_index()
+
+        df_uniprot[['patient_id', 'visit_month']] = df_uniprot.visit_id.str.split("_", expand=True)
+        df_peptide[['patient_id', 'visit_month']] = df_peptide.visit_id.str.split("_", expand=True)
 
         df_uniprot['patient_id'] = pd.to_numeric(df_uniprot['patient_id'])
         df_uniprot['visit_month'] = pd.to_numeric(df_uniprot['visit_month'])
@@ -51,7 +63,7 @@ class data:
         df_peptide = pd.pivot_table(df_peptide, index='patient_id', columns=['visit_month'])
         df_peptide = df_peptide.reindex(sorted(df_peptide.columns, ), axis=1)
 
-        return np.array(df_uniprot), np.array(df_peptide)
+        return df_uniprot, df_peptide
 
     def y_data(self):
         return self.train_clinical
