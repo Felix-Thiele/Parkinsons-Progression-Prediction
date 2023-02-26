@@ -65,8 +65,9 @@ class data:
 
         return df_uniprot, df_peptide
 
-    def y_data(self):
-        return self.train_clinical
+    def y_data(self, upd23b_clinical_state_on_medication=('On', 'Off', np.nan)):
+        return self.train_clinical[self.train_clinical['upd23b_clinical_state_on_medication'].isin(upd23b_clinical_state_on_medication)]
 
-    def y_data_3d(self):
-        return pd.pivot_table(self.train_clinical,index = 'patient_id',columns =['visit_month'])
+    def y_data_3d(self, upd23b_clinical_state_on_medication=('On', 'Off', np.nan)):
+        return pd.pivot_table(self.train_clinical[self.train_clinical['upd23b_clinical_state_on_medication'].isin(upd23b_clinical_state_on_medication)]
+                              ,index = 'patient_id',columns =['visit_month'])
