@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import scipy
 
 
 class data:
@@ -71,3 +72,24 @@ class data:
     def y_data_3d(self, upd23b_clinical_state_on_medication=('On', 'Off', np.nan)):
         return pd.pivot_table(self.train_clinical[self.train_clinical['upd23b_clinical_state_on_medication'].isin(upd23b_clinical_state_on_medication)]
                               ,index = 'patient_id',columns =['visit_month'])
+
+    def prot_3d_lin_interpolate(self):
+        def fill(row):
+            #
+            #   TODO what to do when everything is nan...(For non linear models maybe 0, for linear models mean?)
+            #
+            slope, intercept = 0,0
+            if not row.isnull().all():
+                mask = ~np.isnan(row)
+                if mask.sum() == 1:
+                    slope, intercept = 0,row[mask].iloc[0]
+                else:
+                    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(row.index[mask], row[mask])
+            row.loc[row.isnull()] = intercept + slope * row.loc[row.isnull()].index
+            return row
+
+        x_uniprot, x_peptide = self.x_data_3d()
+        for protein in self.protein_names:
+            x_uniprot[protein] = x_uniprot[protein].apply(fill, axis=1)
+        return x_uniprot
+        
