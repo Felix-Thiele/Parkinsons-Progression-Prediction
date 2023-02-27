@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 import scipy
-
+from tqdm import tqdm
+from scipy import stats
 
 class data:
 
@@ -126,7 +127,7 @@ class data:
 
         y_cols = list(set(list(zip(*clin.columns))[0]))
         y_df = pd.DataFrame(columns=pd.MultiIndex.from_tuples(
-            [(__, _) for _ in sorted(y_cols) for __ in ['y_slope', 'y_intercept', 'y_std_err']], names=['Prot', 'feature']),
+            [(__, _) for _ in sorted(y_cols) for __ in ['y_slope', 'y_intercept']], names=['Prot', 'feature']),
                             index=clin.index)
         for y_col in y_cols:
             vals = clin[y_col].apply(calc_lingress, axis=1)
@@ -134,8 +135,8 @@ class data:
             y_df['y_intercept', y_col] = vals[1]
         return y_df
 
-    def get_y_interpol(self):
-        clin = self.y_data_3d()
+    def get_x_interpol(self):
+        prot, pept = self.x_data_3d()
         def calc_lingress(row):
             if row.isnull().all():
                 return pd.Series([np.nan, np.nan, np.nan])
@@ -145,12 +146,21 @@ class data:
             slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(row.index[mask], row[mask])
             return pd.Series([slope, intercept, std_err])
 
-        y_cols = list(set(list(zip(*clin.columns))[0]))
-        y_df = pd.DataFrame(columns=pd.MultiIndex.from_tuples(
-            [(__, _) for _ in sorted(y_cols) for __ in ['y_slope', 'y_intercept', 'y_std_err']], names=['Prot', 'feature']),
-                            index=clin.index)
-        for y_col in y_cols:
-            vals = clin[y_col].apply(calc_lingress, axis=1)
-            y_df['y_slope', y_col] = vals[0]
-            y_df['y_intercept', y_col] = vals[1]
-        return y_df
+        prot_cols = list(set(list(zip(*prot.columns))[0]))
+        prot_df = pd.DataFrame(columns=pd.MultiIndex.from_tuples(
+            [(__, _) for _ in sorted(prot_cols) for __ in ['x_slope', 'x_intercept']], names=['Prot', 'feature']),
+                            index=prot.index)
+        for y_col in tqdm(prot_cols):
+            vals = prot[y_col].apply(calc_lingress, axis=1)
+            prot_df['x_slope', y_col] = vals[0]
+            prot_df['x_intercept', y_col] = vals[1]
+
+        pept_cols = list(set(list(zip(*prot.columns))[0]))
+        pept_df = pd.DataFrame(columns=pd.MultiIndex.from_tuples(
+            [(__, _) for _ in sorted(pept_cols) for __ in ['x_slope', 'x_intercept']], names=['Prot', 'feature']),
+                            index=prot.index)
+        for y_col in tqdm(pept_cols):
+            vals = prot[y_col].apply(calc_lingress, axis=1)
+            pept_df['x_slope', y_col] = vals[0]
+            pept_df['x_intercept', y_col] = vals[1]
+        return prot_df, pept_df
