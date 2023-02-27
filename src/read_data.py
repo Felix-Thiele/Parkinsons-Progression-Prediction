@@ -112,3 +112,45 @@ class data:
         for protein in ['updrs_1', 'updrs_2', 'updrs_3', 'updrs_4']:
             y[protein] = y[protein].apply(fill, axis=1)
         return y
+
+    def get_y_interpol(self):
+        clin = self.y_data_3d()
+        def calc_lingress(row):
+            if row.isnull().all():
+                return pd.Series([np.nan, np.nan, np.nan])
+            mask = ~np.isnan(row)
+            if mask.sum() == 1:
+                return pd.Series([0, row[mask].iloc[0], 0])
+            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(row.index[mask], row[mask])
+            return pd.Series([slope, intercept, std_err])
+
+        y_cols = list(set(list(zip(*clin.columns))[0]))
+        y_df = pd.DataFrame(columns=pd.MultiIndex.from_tuples(
+            [(__, _) for _ in sorted(y_cols) for __ in ['y_slope', 'y_intercept', 'y_std_err']], names=['Prot', 'feature']),
+                            index=clin.index)
+        for y_col in y_cols:
+            vals = clin[y_col].apply(calc_lingress, axis=1)
+            y_df['y_slope', y_col] = vals[0]
+            y_df['y_intercept', y_col] = vals[1]
+        return y_df
+
+    def get_y_interpol(self):
+        clin = self.y_data_3d()
+        def calc_lingress(row):
+            if row.isnull().all():
+                return pd.Series([np.nan, np.nan, np.nan])
+            mask = ~np.isnan(row)
+            if mask.sum() == 1:
+                return pd.Series([0, row[mask].iloc[0], 0])
+            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(row.index[mask], row[mask])
+            return pd.Series([slope, intercept, std_err])
+
+        y_cols = list(set(list(zip(*clin.columns))[0]))
+        y_df = pd.DataFrame(columns=pd.MultiIndex.from_tuples(
+            [(__, _) for _ in sorted(y_cols) for __ in ['y_slope', 'y_intercept', 'y_std_err']], names=['Prot', 'feature']),
+                            index=clin.index)
+        for y_col in y_cols:
+            vals = clin[y_col].apply(calc_lingress, axis=1)
+            y_df['y_slope', y_col] = vals[0]
+            y_df['y_intercept', y_col] = vals[1]
+        return y_df
